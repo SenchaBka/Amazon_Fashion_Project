@@ -110,7 +110,7 @@ def word_count(s: str) -> int:
 df["char_len"] = df["text_full"].fillna("").astype(str).str.len()
 df["word_len"] = df["text_full"].fillna("").astype(str).apply(word_count)
 
-print("\n--- Review length stats ---")
+print("\n--- Review length exploration ---")
 print(df[["char_len", "word_len"]].describe(percentiles=[0.5, 0.75, 0.9, 0.95, 0.99]))
 
 plt.figure()
@@ -139,27 +139,10 @@ outliers = df[(df["word_len"] > upper) | (df["word_len"] < lower)]
 print("\nOutlier thresholds (words):", {"lower": float(lower), "upper": float(upper)})
 print("Outlier review count:", len(outliers))
 
-print("\nSample longest reviews:")
-print(df.sort_values("word_len", ascending=False)[["asin", "reviewerID", "overall", "word_len", "text_full"]].head(3).to_string(index=False))
-
-
-# ----------------------------
-# 7) Duplicates checks
-# ----------------------------
+# Duplicates checks
 print("\n--- Duplicate checks ---")
 
-# 7a) Exact duplicate rows
-dup_pairs = df.duplicated(subset=["reviewerID", "asin", "unixReviewTime"])
-print("Duplicate (reviewerID, asin, unixReviewTime):", dup_pairs)
-
-# 7b) Same user + same product duplicates
-if "date" in df.columns:
-    dup_user_product = df.duplicated(subset=["reviewerID", "asin"]).sum()
-else:
-    dup_user_product = df.duplicated(subset=["reviewerID", "asin"]).sum()
-print("Duplicate (reviewerID, asin) pairs:", dup_user_product)
-
-# 7c) Identical text duplicates (possible copied reviews)
+# Identical text duplicates (possible copied reviews)
 df["text_norm"] = (
     df["text_full"]
     .fillna("")
@@ -176,23 +159,12 @@ text_counts = df[df["text_norm"] != ""].groupby("text_norm").size().sort_values(
 print("\nTop repeated review texts:")
 print(text_counts.head(10))
 
-
-# ----------------------------
-# 8) Verified vs non-verified (if available)
-# ----------------------------
+# Verified vs non-verified
 if df["verified"].notna().any():
     tmp = df.dropna(subset=["verified"])
     grp = tmp.groupby("verified")["overall"].agg(["count", "mean", "median"])
     print("\n--- Verified vs non-verified ratings ---")
     print(grp)
-
-    plt.figure()
-    grp["mean"].plot(kind="bar")
-    plt.title("Average rating: verified vs non-verified")
-    plt.xlabel("Verified purchase")
-    plt.ylabel("Average rating")
-    plt.tight_layout()
-    plt.show()
 else:
     print("\nNo verified column (or all missing). Skipping verified analysis.")
 
