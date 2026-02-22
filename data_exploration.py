@@ -168,36 +168,7 @@ if df["verified"].notna().any():
 else:
     print("\nNo verified column (or all missing). Skipping verified analysis.")
 
-
-# ----------------------------
-# 9) Helpful votes analysis (if available)
-# ----------------------------
-if df["helpful_votes"].notna().any():
-    hv = df["helpful_votes"].dropna()
-    print("\n--- Helpful votes stats ---")
-    print(hv.describe(percentiles=[0.5, 0.9, 0.95, 0.99]))
-
-    plt.figure()
-    hv.plot(kind="hist", bins=60, log=True)
-    plt.title("Helpful votes distribution (log y)")
-    plt.xlabel("Helpful votes")
-    plt.ylabel("Frequency (log)")
-    plt.tight_layout()
-    plt.show()
-
-    # Correlation between length and helpful votes
-    merged = df.dropna(subset=["helpful_votes"])
-    if len(merged) > 100:
-        corr = merged[["helpful_votes", "word_len", "overall"]].corr(numeric_only=True)
-        print("\nCorrelation matrix (helpful_votes, word_len, rating):")
-        print(corr)
-else:
-    print("\nNo helpful votes data. Skipping helpfulness analysis.")
-
-
-# ----------------------------
-# 10) Time trends (if date available)
-# ----------------------------
+# Time trends
 if df["date"].notna().any():
     df_time = df.dropna(subset=["date"]).copy()
     df_time["month"] = df_time["date"].dt.to_period("M").dt.to_timestamp()
@@ -206,8 +177,8 @@ if df["date"].notna().any():
 
     plt.figure()
     reviews_by_month.plot()
-    plt.title("Reviews over time (monthly)")
-    plt.xlabel("Month")
+    plt.title("Reviews over time (yearly)")
+    plt.xlabel("Year")
     plt.ylabel("Number of reviews")
     plt.tight_layout()
     plt.show()
@@ -225,66 +196,6 @@ if df["date"].notna().any():
     plt.show()
 else:
     print("\nNo date field available. Skipping temporal analysis.")
-
-
-# ----------------------------
-# 11) Creative: length vs rating (does negativity produce longer reviews?)
-# ----------------------------
-plt.figure()
-df.boxplot(column="word_len", by="overall")
-plt.title("Review length (words) by rating")
-plt.suptitle("")
-plt.xlabel("Rating")
-plt.ylabel("Words")
-plt.tight_layout()
-plt.show()
-
-# Optional: show mean/median length by rating
-len_by_rating = df.groupby("overall")["word_len"].agg(["count", "mean", "median"]).sort_index()
-print("\n--- Review length by rating ---")
-print(len_by_rating)
-
-
-# ----------------------------
-# 12) Creative: Cold start severity
-# ----------------------------
-cold_products = (reviews_per_product <= 2).mean()
-cold_users = (reviews_per_user <= 1).mean()
-print("\n--- Cold-start indicators ---")
-print(f"Share of products with <=2 reviews: {cold_products:.2%}")
-print(f"Share of users with 1 review: {cold_users:.2%}")
-
-# Verified vs Non-Verified Behavior
-df.groupby("verified")["overall"].agg(["count", "mean"])
-
-# Text Complexity (not just length)
-df["avg_word_len"] = df["text_full"].apply(lambda x: np.mean([len(w) for w in str(x).split()]) if x else 0)
-
-df["avg_word_len"].hist(bins=50)
-plt.title("Average word length distribution")
-plt.show()
-
-# Repetitions
-df["text_norm"] = df["text_full"].str.lower().str.strip()
-
-duplicate_texts = df["text_norm"].value_counts().head(10)
-print(duplicate_texts)
-
-
-# Reviews Over Time
-df["date"] = pd.to_datetime(df["unixReviewTime"], unit="s")
-
-df.groupby(df["date"].dt.year).size().plot()
-plt.title("Reviews over time")
-plt.show()
-
-# Helpful Votes vs Review Length
-df.dropna(subset=["helpful_votes"]).plot.scatter(x="word_len", y="helpful_votes")
-plt.title("Helpful votes vs review length")
-plt.show()
-
-# Bias
-df["overall"].value_counts(normalize=True)
 
 # User behaviour Segmentation
 user_counts = df.groupby("reviewerID").size()
