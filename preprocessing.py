@@ -86,13 +86,10 @@ print("IQR length outliers:", int(df["is_len_outlier"].sum()))
 print("Too short (<=2 words):", int(df["is_too_short"].sum()))
 print("Too long (>=250 words):", int(df["is_too_long"].sum()))
 
-# Output a clean modeling table (recommended)
-cols_to_keep = ["text", "sentiment", "overall"]
-for c in ["asin", "verified", "unixReviewTime", "reviewTime", "reviewerID"]:
-    if c in df.columns:
-        cols_to_keep.append(c)
-
-model_df = df[cols_to_keep].copy()
+# Output 
+model_df = df[["text", "sentiment"]].copy()
 
 print("\nFinal modeling dataframe shape:", model_df.shape)
 print(model_df.head(3))
+
+print("Final columns:", model_df.columns.tolist())
