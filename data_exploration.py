@@ -38,29 +38,16 @@ df["votes"] = pd.to_numeric(
 )
 
 # Time parsing
-if "unixReviewTime" in df.columns:
-    df["date"] = pd.to_datetime(df["unixReviewTime"], unit="s", errors="coerce")
-elif "reviewTime" in df.columns:
-    df["date"] = pd.to_datetime(df["reviewTime"], errors="coerce")
-else:
-    df["date"] = pd.NaT
+df["date"] = pd.to_datetime(df["unixReviewTime"], unit="s")
 
-# verified parsing
-if "verified" in df.columns:
-    df["verified"] = df["verified"].astype("boolean")
-else:
-    df["verified"] = pd.NA
-
-
-# ----------------------------
-# 2) Basic counts & averages
-# ----------------------------
-print("\n--- Basic stats ---")
+# Basic counts & averages
+print("\n--- Basic Exploration ---")
 print("Total reviews:", len(df))
 print("Unique products (asin):", df["asin"].nunique())
 print("Unique users:", df["reviewerID"].nunique())
 print("Average rating:", df["overall"].mean())
 print("Median rating:", df["overall"].median())
+print(df["overall"].value_counts(normalize=True))
 
 reviews_per_product = df.groupby("asin").size()
 reviews_per_user = df.groupby("reviewerID").size()
@@ -70,10 +57,7 @@ print("Median reviews per product:", reviews_per_product.median())
 print("Avg reviews per user:", reviews_per_user.mean())
 print("Median reviews per user:", reviews_per_user.median())
 
-
-# ----------------------------
-# 3) Rating distribution
-# ----------------------------
+# Rating distribution
 plt.figure()
 df["overall"].value_counts().sort_index().plot(kind="bar")
 plt.title("Rating distribution")
@@ -82,10 +66,7 @@ plt.ylabel("Count")
 plt.tight_layout()
 plt.show()
 
-
-# ----------------------------
-# 4) Distribution: # reviews per product (long tail)
-# ----------------------------
+# Distribution: # reviews per product (long tail)
 plt.figure()
 reviews_per_product.plot(kind="hist", bins=50, log=True)
 plt.title("Distribution of reviews per product (log y)")
@@ -102,13 +83,7 @@ plt.ylabel("Reviews")
 plt.tight_layout()
 plt.show()
 
-print("\nTop 10 most-reviewed products:")
-print(reviews_per_product.sort_values(ascending=False).head(10))
-
-
-# ----------------------------
-# 5) Distribution: # reviews per user
-# ----------------------------
+# Distribution: # reviews per user
 plt.figure()
 reviews_per_user.plot(kind="hist", bins=50, log=True)
 plt.title("Distribution of reviews per user (log y)")
@@ -125,13 +100,7 @@ plt.ylabel("Reviews")
 plt.tight_layout()
 plt.show()
 
-print("\nTop 10 most-active users:")
-print(reviews_per_user.sort_values(ascending=False).head(10))
-
-
-# ----------------------------
-# 6) Review length + outliers
-# ----------------------------
+# Review length + outliers
 def word_count(s: str) -> int:
     if not isinstance(s, str):
         return 0
