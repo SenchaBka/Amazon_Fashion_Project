@@ -3,9 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# ----------------------------
 # Load data
-# ----------------------------
 DATA_PATH = "data/AMAZON_FASHION.json" 
 
 def load_jsonl(path: str, nrows: int | None = None) -> pd.DataFrame:
@@ -25,66 +23,25 @@ df = load_jsonl(DATA_PATH, nrows=None)
 print("Loaded:", df.shape)
 print("Columns:", df.columns.tolist())
 
-# ----------------------------
-# 1) Standardize column names (handles commonmazon formats) A
-# ----------------------------
-# Common fields:
-# asin, reviewerID, overall, reviewText, summary, unixReviewTime, reviewTime, verified, vote/helpful, etc.
-rename_map = {
-    "reviewerID": "user_id",
-    "asin": "asin",
-    "overall": "rating",
-    "reviewText": "review_text",
-    "summary": "summary",
-    "unixReviewTime": "unix_time",
-    "reviewTime": "review_time",
-    "verified": "verified",
-    "vote": "vote",           # some datasets store helpful votes as strings like "1,234"
-    "helpful": "helpful",     # sometimes helpful is [upvotes, total]
-}
-# apply only keys that exist
-df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
-
-# Ensure minimal required columns exist
-required = ["asin", "user_id", "rating"]
-missing = [c for c in required if c not in df.columns]
-if missing:
-    raise ValueError(f"Missing required columns {missing}. Present columns: {df.columns.tolist()}")
-
-# Combine text: review_text + summary if available
-if "review_text" not in df.columns:
-    df["review_text"] = ""
+# Combine text: reviewText + summary if available
+if "reviewText" not in df.columns:
+    df["reviewText"] = ""
 if "summary" in df.columns:
-    df["text_full"] = (df["summary"].fillna("") + " " + df["review_text"].fillna("")).str.strip()
+    df["text_full"] = (df["summary"].fillna("") + " " + df["reviewText"].fillna("")).str.strip()
 else:
-    df["text_full"] = df["review_text"].fillna("").astype(str)
+    df["text_full"] = df["reviewText"].fillna("").astype(str)
 
-# helpful votes parsing (if present)
-def parse_vote(x):
-    if pd.isna(x):
-        return np.nan
-    if isinstance(x, (int, float)):
-        return float(x)
-    s = str(x).replace(",", "").strip()
-    return float(s) if s.isdigit() else np.nan
+# Votes cleaning and parsing
+df["votes"] = pd.to_numeric(
+    df["vote"].astype(str).str.replace(",", ""), 
+    errors="coerce"
+)
 
-if "vote" in df.columns:
-    df["helpful_votes"] = df["vote"].apply(parse_vote)
-elif "helpful" in df.columns:
-    # helpful can be [up, total]
-    def parse_helpful(h):
-        if isinstance(h, (list, tuple)) and len(h) >= 1:
-            return float(h[0])
-        return np.nan
-    df["helpful_votes"] = df["helpful"].apply(parse_helpful)
-else:
-    df["helpful_votes"] = np.nan
-
-# time parsing
-if "unix_time" in df.columns:
-    df["date"] = pd.to_datetime(df["unix_time"], unit="s", errors="coerce")
-elif "review_time" in df.columns:
-    df["date"] = pd.to_datetime(df["review_time"], errors="coerce")
+# Time parsing
+if "unixReviewTime" in df.columns:
+    df["date"] = pd.to_datetime(df["unixReviewTime"], unit="s", errors="coerce")
+elif "reviewTime" in df.columns:
+    df["date"] = pd.to_datetime(df["reviewTime"], errors="coerce")
 else:
     df["date"] = pd.NaT
 
@@ -101,12 +58,12 @@ else:
 print("\n--- Basic stats ---")
 print("Total reviews:", len(df))
 print("Unique products (asin):", df["asin"].nunique())
-print("Unique users:", df["user_id"].nunique())
-print("Average rating:", df["rating"].mean())
-print("Median rating:", df["rating"].median())
+print("Unique users:", df["reviewerID"].nunique())
+print("Average rating:", df["overall"].mean())
+print("Median rating:", df["overall"].median())
 
 reviews_per_product = df.groupby("asin").size()
-reviews_per_user = df.groupby("user_id").size()
+reviews_per_user = df.groupby("reviewerID").size()
 
 print("Avg reviews per product:", reviews_per_product.mean())
 print("Median reviews per product:", reviews_per_product.median())
@@ -118,7 +75,7 @@ print("Median reviews per user:", reviews_per_user.median())
 # 3) Rating distribution
 # ----------------------------
 plt.figure()
-df["rating"].value_counts().sort_index().plot(kind="bar")
+df["overall"].value_counts().sort_index().plot(kind="bar")
 plt.title("Rating distribution")
 plt.xlabel("Rating")
 plt.ylabel("Count")
@@ -214,7 +171,7 @@ print("\nOutlier thresholds (words):", {"lower": float(lower), "upper": float(up
 print("Outlier review count:", len(outliers))
 
 print("\nSample longest reviews:")
-print(df.sort_values("word_len", ascending=False)[["asin", "user_id", "rating", "word_len", "text_full"]].head(3).to_string(index=False))
+print(df.sort_values("word_len", ascending=False)[["asin", "reviewerID", "overall", "word_len", "text_full"]].head(3).to_string(index=False))
 
 
 # ----------------------------
@@ -223,15 +180,15 @@ print(df.sort_values("word_len", ascending=False)[["asin", "user_id", "rating", 
 print("\n--- Duplicate checks ---")
 
 # 7a) Exact duplicate rows
-dup_pairs = df.duplicated(subset=["user_id", "asin", "unix_time"])
+dup_pairs = df.duplicated(subset=["reviewerID", "asin", "unixReviewTime"])
 print("Duplicate (reviewerID, asin, unixReviewTime):", dup_pairs)
 
 # 7b) Same user + same product duplicates
 if "date" in df.columns:
-    dup_user_product = df.duplicated(subset=["user_id", "asin"]).sum()
+    dup_user_product = df.duplicated(subset=["reviewerID", "asin"]).sum()
 else:
-    dup_user_product = df.duplicated(subset=["user_id", "asin"]).sum()
-print("Duplicate (user_id, asin) pairs:", dup_user_product)
+    dup_user_product = df.duplicated(subset=["reviewerID", "asin"]).sum()
+print("Duplicate (reviewerID, asin) pairs:", dup_user_product)
 
 # 7c) Identical text duplicates (possible copied reviews)
 df["text_norm"] = (
@@ -256,7 +213,7 @@ print(text_counts.head(10))
 # ----------------------------
 if df["verified"].notna().any():
     tmp = df.dropna(subset=["verified"])
-    grp = tmp.groupby("verified")["rating"].agg(["count", "mean", "median"])
+    grp = tmp.groupby("verified")["overall"].agg(["count", "mean", "median"])
     print("\n--- Verified vs non-verified ratings ---")
     print(grp)
 
@@ -290,7 +247,7 @@ if df["helpful_votes"].notna().any():
     # Correlation between length and helpful votes
     merged = df.dropna(subset=["helpful_votes"])
     if len(merged) > 100:
-        corr = merged[["helpful_votes", "word_len", "rating"]].corr(numeric_only=True)
+        corr = merged[["helpful_votes", "word_len", "overall"]].corr(numeric_only=True)
         print("\nCorrelation matrix (helpful_votes, word_len, rating):")
         print(corr)
 else:
@@ -333,7 +290,7 @@ else:
 # 11) Creative: length vs rating (does negativity produce longer reviews?)
 # ----------------------------
 plt.figure()
-df.boxplot(column="word_len", by="rating")
+df.boxplot(column="word_len", by="overall")
 plt.title("Review length (words) by rating")
 plt.suptitle("")
 plt.xlabel("Rating")
@@ -342,7 +299,7 @@ plt.tight_layout()
 plt.show()
 
 # Optional: show mean/median length by rating
-len_by_rating = df.groupby("rating")["word_len"].agg(["count", "mean", "median"]).sort_index()
+len_by_rating = df.groupby("overall")["word_len"].agg(["count", "mean", "median"]).sort_index()
 print("\n--- Review length by rating ---")
 print(len_by_rating)
 
@@ -357,7 +314,7 @@ print(f"Share of products with <=2 reviews: {cold_products:.2%}")
 print(f"Share of users with 1 review: {cold_users:.2%}")
 
 # Verified vs Non-Verified Behavior
-df.groupby("verified")["rating"].agg(["count", "mean"])
+df.groupby("verified")["overall"].agg(["count", "mean"])
 
 # Text Complexity (not just length)
 df["avg_word_len"] = df["text_full"].apply(lambda x: np.mean([len(w) for w in str(x).split()]) if x else 0)
@@ -374,7 +331,7 @@ print(duplicate_texts)
 
 
 # Reviews Over Time
-df["date"] = pd.to_datetime(df["unix_time"], unit="s")
+df["date"] = pd.to_datetime(df["unixReviewTime"], unit="s")
 
 df.groupby(df["date"].dt.year).size().plot()
 plt.title("Reviews over time")
@@ -386,10 +343,10 @@ plt.title("Helpful votes vs review length")
 plt.show()
 
 # Bias
-df["rating"].value_counts(normalize=True)
+df["overall"].value_counts(normalize=True)
 
 # User behaviour Segmentation
-user_counts = df.groupby("user_id").size()
+user_counts = df.groupby("reviewerID").size()
 
 print("1 review users:", (user_counts == 1).mean())
 print("Power users (>10):", (user_counts > 10).mean())
