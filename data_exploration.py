@@ -1,5 +1,4 @@
-import os, json, gzip, re
-import numpy as np
+import json
 import pandas as pd
 import matplotlib.pyplot as plt
 
