@@ -65,3 +65,87 @@ src/
   evaluate.py            – Metrics and output writers
   run_phase1_lexicon.py  – CLI entrypoint
 ```
+
+## Run Phase 2 Step 3 and Step 4
+
+The project now includes separate runners for:
+
+- Step 3: preprocessing + TF-IDF text representation
+- Step 4: Logistic Regression training/tuning with a stratified 70/30 split
+
+### Prerequisite
+
+Step 3 expects the Step 1 subset CSV to exist at:
+
+```text
+outputs/phase 2/step 1/step1_subset_labeled.csv
+```
+
+If you have not created Step 1 artifacts yet, run:
+
+```bash
+python -m src.phase2.run_phase2_steps12 --data_path data/AMAZON_FASHION.json --subset_size 2000 --seed 42
+```
+
+### Step 3: TF-IDF representation
+
+Default run:
+
+```bash
+python -m src.phase2.run_phase2_step3
+```
+
+Custom example:
+
+```bash
+python -m src.phase2.run_phase2_step3 \
+  --subset_csv "outputs/phase 2/step 1/step1_subset_labeled.csv" \
+  --out_dir "outputs/phase 2/step 3" \
+  --max_features 20000 \
+  --min_df 2 \
+  --max_df 0.95 \
+  --ngram_max 2
+```
+
+Step 3 outputs (default `outputs/phase 2/step 3/`):
+
+- `step3_tfidf_matrix.npz`
+- `step3_labels.csv`
+- `step3_tfidf_vectorizer.joblib`
+- `step3_vocabulary.csv`
+- `step3_summary.json`
+
+### Step 4: Logistic Regression training/tuning
+
+Default run:
+
+```bash
+python -m src.phase2.run_phase2_step4
+```
+
+Custom example:
+
+```bash
+python -m src.phase2.run_phase2_step4 \
+  --step3_dir "outputs/phase 2/step 3" \
+  --out_dir "outputs/phase 2/step 4" \
+  --seed 42 \
+  --cv_folds 5
+```
+
+Step 4 outputs (default `outputs/phase 2/step 4/`):
+
+- `step4_logreg_model.joblib`
+- `step4_best_params.json`
+- `step4_metrics.json`
+- `step4_confusion_matrix.csv`
+- `step4_test_predictions.csv`
+- `step4_cv_results_top10.csv`
+- `step4_summary.json`
+
+### Recommended order
+
+```bash
+python -m src.phase2.run_phase2_step3
+python -m src.phase2.run_phase2_step4
+```
