@@ -149,5 +149,3 @@ Step 4 outputs (default `outputs/phase 2/step 4/`):
 python -m src.phase2.run_phase2_step3
 python -m src.phase2.run_phase2_step4
 ```
-
-![bean](https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExMG43cDJ4eDV6NWc3MTBtM2M4MXpxZXl1YnludTh0MmU2aHNmc2pnaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/RLcQGYmQU36d3FceiP/giphy.gif)
