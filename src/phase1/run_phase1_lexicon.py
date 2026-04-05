@@ -8,10 +8,10 @@ import argparse
 import os
 import sys
 
-from src.io_utils import load_jsonl
-from src.preprocess_lexicon import prepare_dataframe, sample_balanced
-from src.lexicon_models import run_vader, run_textblob
-from src.evaluate import (
+from src.phase1.io_utils import load_jsonl
+from src.phase1.preprocess_lexicon import prepare_dataframe, sample_balanced
+from src.phase1.lexicon_models import run_vader, run_textblob
+from src.phase1.evaluate import (
     compute_metrics,
     compute_confusion,
     save_outputs,
