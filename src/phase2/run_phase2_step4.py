@@ -11,7 +11,7 @@ import json
 import os
 import sys
 
-from src.phase2.model_phase2 import run_step4_logreg
+from src.phase2.lg_model_phase2 import run_step4_logreg
 
 
 def parse_args(argv=None):
@@ -38,6 +38,12 @@ def parse_args(argv=None):
         default=5,
         help="Number of stratified folds for hyperparameter tuning.",
     )
+    parser.add_argument(
+        "--use_smote",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Apply SMOTE oversampling to minority classes in training data.",
+    )
     return parser.parse_args(argv)
 
 
@@ -51,6 +57,7 @@ def main(argv=None):
     print(f"  out_dir   : {args.out_dir}")
     print(f"  seed      : {args.seed}")
     print(f"  cv_folds  : {args.cv_folds}")
+    print(f"  use_smote : {args.use_smote}")
     print("=" * 64 + "\n")
 
     if not os.path.isdir(args.step3_dir):
@@ -66,6 +73,7 @@ def main(argv=None):
         out_dir=args.out_dir,
         seed=args.seed,
         cv_folds=args.cv_folds,
+        use_smote=args.use_smote,
     )
 
     print("[main] Step 4 summary:")
